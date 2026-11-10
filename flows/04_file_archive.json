@@ -1,0 +1,982 @@
+{
+  "flowContents": {
+    "identifier": "1c672262-6907-4989-a174-6150f4afadfb",
+    "instanceIdentifier": null,
+    "name": "FILE-ARCHIVE",
+    "comments": "GetFile watch folder -> DetectMimeType -> PutFile archive -> PutSFTP -> ReplaceText(audit JSON) -> PutDatabaseRecord(ingest_audit)",
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "funnels": [],
+    "labels": [],
+    "processors": [
+      {
+        "identifier": "a4a7a631-f035-419e-9211-bb9271eb3b2c",
+        "instanceIdentifier": null,
+        "name": "Watch /data/drop",
+        "comments": "Picks up CSV/LOG files dropped by generators/file_factory.py",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.GetFile",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Input Directory": "/data/drop",
+          "Recurse Subdirectories": "true",
+          "Keep Source File": "false"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Input Directory": {
+            "name": "Input Directory",
+            "displayName": "Input Directory",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Recurse Subdirectories": {
+            "name": "Recurse Subdirectories",
+            "displayName": "Recurse Subdirectories",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Keep Source File": {
+            "name": "Keep Source File",
+            "displayName": "Keep Source File",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "6b50835a-f6fe-4bcd-9f1e-4f2ad02a5727",
+        "instanceIdentifier": null,
+        "name": "Detect media type",
+        "comments": "Sets the mime.type attribute from magic bytes / filename",
+        "position": {
+          "x": 340,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.IdentifyMimeType",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Use Filename In Detection": "true"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Use Filename In Detection": {
+            "name": "Use Filename In Detection",
+            "displayName": "Use Filename In Detection",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "4e56c6a6-a512-4590-8216-4d0c7a508187",
+        "instanceIdentifier": null,
+        "name": "Parse filename attributes",
+        "comments": "temp-001_20261027-101500.csv -> device_id = temp-001",
+        "position": {
+          "x": 680,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.attributes.UpdateAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-update-attribute-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "device_id": "${filename:replaceAll('^([a-zA-Z]+-[0-9]+)_.*$', '$1')}",
+          "media_type": "${mime.type}",
+          "archive.path": "/data/archive/files/${now():format('yyyy/MM/dd')}",
+          "ingest.ts": "${now():format('yyyy-MM-dd HH:mm:ss')}"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {},
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "a89050bc-66d4-46e3-be79-e7b16671c8d6",
+        "instanceIdentifier": null,
+        "name": "Archive file",
+        "comments": "File server capability: dated archive folder",
+        "position": {
+          "x": 1020,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.PutFile",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Directory": "${archive.path}",
+          "Conflict Resolution Strategy": "replace",
+          "Create Missing Directories": "true"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Directory": {
+            "name": "Directory",
+            "displayName": "Directory",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Conflict Resolution Strategy": {
+            "name": "Conflict Resolution Strategy",
+            "displayName": "Conflict Resolution Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Create Missing Directories": {
+            "name": "Create Missing Directories",
+            "displayName": "Create Missing Directories",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "4e8165f2-31a6-4c3e-9119-b7dbeb2309a9",
+        "instanceIdentifier": null,
+        "name": "Copy to SFTP file server",
+        "comments": "Pushes the same bytes to the atmoz/sftp container",
+        "position": {
+          "x": 1360,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.PutSFTP",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Hostname": "sftp",
+          "Port": "22",
+          "Username": "iot",
+          "Password": "",
+          "Remote Path": "upload/archive/${now():format('yyyy/MM')}",
+          "Create Directory": "true",
+          "Connection Timeout": "10 sec",
+          "Data Timeout": "30 sec"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "failure"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Hostname": {
+            "name": "Hostname",
+            "displayName": "Hostname",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Port": {
+            "name": "Port",
+            "displayName": "Port",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Username": {
+            "name": "Username",
+            "displayName": "Username",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Password": {
+            "name": "Password",
+            "displayName": "Password",
+            "dynamic": false,
+            "sensitive": true,
+            "identifiesControllerService": false
+          },
+          "Remote Path": {
+            "name": "Remote Path",
+            "displayName": "Remote Path",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Connection Timeout": {
+            "name": "Connection Timeout",
+            "displayName": "Connection Timeout",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Data Timeout": {
+            "name": "Data Timeout",
+            "displayName": "Data Timeout",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "73bf5966-23d7-4f2e-b726-6ec579b9e19b",
+        "instanceIdentifier": null,
+        "name": "Build audit JSON record",
+        "comments": "Attributes -> one JSON line = one audit DB row",
+        "position": {
+          "x": 1700,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.ReplaceText",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Replacement Value": "{\"filename\": \"${filename}\", \"media_type\": \"${media_type}\", \"device_id\": \"${device_id}\", \"byte_size\": ${fileSize}, \"archive_path\": \"${archive.path}\"}",
+          "Evaluation Mode": "Entire text"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Replacement Value": {
+            "name": "Replacement Value",
+            "displayName": "Replacement Value",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Evaluation Mode": {
+            "name": "Evaluation Mode",
+            "displayName": "Evaluation Mode",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "f5f275c5-1046-46df-b29e-d5775c1ab393",
+        "instanceIdentifier": null,
+        "name": "Insert into ingest_audit",
+        "comments": "Audit trail for every binary/structured file ingested",
+        "position": {
+          "x": 2040,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.PutDatabaseRecord",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Record Reader": "8893ef25-8bcc-49a3-afa7-0f9e9be41c4e",
+          "Statement Type": "INSERT",
+          "Table Name": "ingest_audit",
+          "Database Connection Pooling Service": "41d66132-97af-42d2-84a0-dca5f18b7bba",
+          "Translate Field Names": "true",
+          "Unmatched Field Behavior": "Ignore Unmatched Fields"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Record Reader": {
+            "name": "Record Reader",
+            "displayName": "Record Reader",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          },
+          "Statement Type": {
+            "name": "Statement Type",
+            "displayName": "Statement Type",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Table Name": {
+            "name": "Table Name",
+            "displayName": "Table Name",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database Connection Pooling Service": {
+            "name": "Database Connection Pooling Service",
+            "displayName": "Database Connection Pooling Service",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          },
+          "Translate Field Names": {
+            "name": "Translate Field Names",
+            "displayName": "Translate Field Names",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Unmatched Field Behavior": {
+            "name": "Unmatched Field Behavior",
+            "displayName": "Unmatched Field Behavior",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "0c2cae6b-bf35-4496-8090-46da7defc247",
+        "instanceIdentifier": null,
+        "name": "Log archive failures",
+        "comments": "",
+        "position": {
+          "x": 2040,
+          "y": 220
+        },
+        "type": "org.apache.nifi.processors.standard.LogAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Log Level": "warn",
+          "Log Payload": "false"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Log Level": {
+            "name": "Log Level",
+            "displayName": "Log Level",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Log Payload": {
+            "name": "Log Payload",
+            "displayName": "Log Payload",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      }
+    ],
+    "connections": [
+      {
+        "identifier": "3236dc12-046e-40f4-ae34-3d5affa2b149",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Watch /data/drop",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "a4a7a631-f035-419e-9211-bb9271eb3b2c"
+        },
+        "destination": {
+          "name": "Detect media type",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "6b50835a-f6fe-4bcd-9f1e-4f2ad02a5727"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "a8110459-e89b-4bec-aa62-0dce0a64ca74",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Detect media type",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "6b50835a-f6fe-4bcd-9f1e-4f2ad02a5727"
+        },
+        "destination": {
+          "name": "Parse filename attributes",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "4e56c6a6-a512-4590-8216-4d0c7a508187"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "c7486231-dc86-439b-b135-ddcc5874ffc6",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Parse filename attributes",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "4e56c6a6-a512-4590-8216-4d0c7a508187"
+        },
+        "destination": {
+          "name": "Archive file",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "a89050bc-66d4-46e3-be79-e7b16671c8d6"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "be43d5bd-b5cd-4d7f-8e68-3be678319a59",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Archive file",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "a89050bc-66d4-46e3-be79-e7b16671c8d6"
+        },
+        "destination": {
+          "name": "Copy to SFTP file server",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "4e8165f2-31a6-4c3e-9119-b7dbeb2309a9"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "f34fb6cf-9c80-418d-8bdf-3f11e929a67c",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Archive file",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "a89050bc-66d4-46e3-be79-e7b16671c8d6"
+        },
+        "destination": {
+          "name": "Log archive failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "0c2cae6b-bf35-4496-8090-46da7defc247"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "f9238933-9261-4a98-95bc-b22aedb2b7f1",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Copy to SFTP file server",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "4e8165f2-31a6-4c3e-9119-b7dbeb2309a9"
+        },
+        "destination": {
+          "name": "Build audit JSON record",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "73bf5966-23d7-4f2e-b726-6ec579b9e19b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "5067d59a-b972-4b87-b241-d29330c637c1",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Build audit JSON record",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "73bf5966-23d7-4f2e-b726-6ec579b9e19b"
+        },
+        "destination": {
+          "name": "Insert into ingest_audit",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "f5f275c5-1046-46df-b29e-d5775c1ab393"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "d11df5cc-b117-416d-be68-0dee0f74163a",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Insert into ingest_audit",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "f5f275c5-1046-46df-b29e-d5775c1ab393"
+        },
+        "destination": {
+          "name": "Log archive failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "0c2cae6b-bf35-4496-8090-46da7defc247"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "23515261-406a-44d3-83a1-cbff7ad80495",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Insert into ingest_audit",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "f5f275c5-1046-46df-b29e-d5775c1ab393"
+        },
+        "destination": {
+          "name": "Log archive failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "0c2cae6b-bf35-4496-8090-46da7defc247"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "retry"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "491daa18-3c3b-4f4a-9bb3-74cd4eb0192a",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 1870.0,
+          "y": 110.0
+        },
+        "source": {
+          "id": "73bf5966-23d7-4f2e-b726-6ec579b9e19b",
+          "name": "Build audit JSON record",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR"
+        },
+        "destination": {
+          "id": "0c2cae6b-bf35-4496-8090-46da7defc247",
+          "name": "Log archive failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "255e63c6-ec00-480c-92d6-e7522f56c7db",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 1700.0,
+          "y": 110.0
+        },
+        "source": {
+          "id": "4e8165f2-31a6-4c3e-9119-b7dbeb2309a9",
+          "name": "Copy to SFTP file server",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR"
+        },
+        "destination": {
+          "id": "0c2cae6b-bf35-4496-8090-46da7defc247",
+          "name": "Log archive failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "reject"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      }
+    ],
+    "controllerServices": [
+      {
+        "identifier": "41d66132-97af-42d2-84a0-dca5f18b7bba",
+        "instanceIdentifier": null,
+        "name": "MariaDB - iotdb (audit)",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-dbcp-service-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Database Connection URL": "jdbc:mariadb://mariadb:3306/iotdb",
+          "Database Driver Class Name": "org.mariadb.jdbc.Driver",
+          "Database User": "iot",
+          "Password": "",
+          "Max Total Connections": "5",
+          "Database Driver Locations": "/opt/nifi/nifi-current/drivers/mariadb-java-client-4.0.0.jar"
+        },
+        "state": "DISABLED",
+        "componentType": "CONTROLLER_SERVICE",
+        "propertyDescriptors": {
+          "Database Connection URL": {
+            "name": "Database Connection URL",
+            "displayName": "Database Connection URL",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database Driver Class Name": {
+            "name": "Database Driver Class Name",
+            "displayName": "Database Driver Class Name",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database User": {
+            "name": "Database User",
+            "displayName": "Database User",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Password": {
+            "name": "Password",
+            "displayName": "Password",
+            "dynamic": false,
+            "sensitive": true,
+            "identifiesControllerService": false
+          },
+          "Max Total Connections": {
+            "name": "Max Total Connections",
+            "displayName": "Max Total Connections",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database Driver Locations": {
+            "name": "Database Driver Locations",
+            "displayName": "Database Driver Locations",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        }
+      },
+      {
+        "identifier": "8893ef25-8bcc-49a3-afa7-0f9e9be41c4e",
+        "instanceIdentifier": null,
+        "name": "Telemetry JSON Reader (infer schema)",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "type": "org.apache.nifi.json.JsonTreeReader",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-record-serialization-services-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Schema Access Strategy": "Infer Schema"
+        },
+        "state": "DISABLED",
+        "componentType": "CONTROLLER_SERVICE",
+        "propertyDescriptors": {
+          "Schema Access Strategy": {
+            "name": "Schema Access Strategy",
+            "displayName": "Schema Access Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        }
+      }
+    ],
+    "variables": {},
+    "componentType": "PROCESS_GROUP"
+  },
+  "parameterContexts": {},
+  "externalControllerServices": {},
+  "encoding-version": "1.5"
+}

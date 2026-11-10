@@ -1,0 +1,1433 @@
+{
+  "flowContents": {
+    "identifier": "6b90ff48-04c2-440d-9bab-b78871f43140",
+    "instanceIdentifier": null,
+    "name": "MQTT-INGEST",
+    "comments": "ConsumeMQTT -> ValidateJson -> EvaluateJsonPath -> PutDatabaseRecord(telemetry_enriched) + alert branch (alerts) + quarantine branch",
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "funnels": [],
+    "labels": [],
+    "processors": [
+      {
+        "identifier": "305f71a2-cfd9-43f0-9e03-20334657e274",
+        "instanceIdentifier": null,
+        "name": "ConsumeMQTT telemetry",
+        "comments": "Subscribes to iot/telemetry/# published by generators/sensor_sim.py",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.mqtt.ConsumeMQTT",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-mqtt-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Broker URI": "tcp://mqtt:1883",
+          "Client ID": "nifi-mqtt-consumer",
+          "Topic Filter": "iot/telemetry/#",
+          "Quality of Service": "1",
+          "Max Queue Size": "1000"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Broker URI": {
+            "name": "Broker URI",
+            "displayName": "Broker URI",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Client ID": {
+            "name": "Client ID",
+            "displayName": "Client ID",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Topic Filter": {
+            "name": "Topic Filter",
+            "displayName": "Topic Filter",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Quality of Service": {
+            "name": "Quality of Service",
+            "displayName": "Quality of Service",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Max Queue Size": {
+            "name": "Max Queue Size",
+            "displayName": "Max Queue Size",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "61790aab-9ea9-489d-b7e8-562151475ad1",
+        "instanceIdentifier": null,
+        "name": "ValidateJson telemetry schema",
+        "comments": "1-in-12 simulator messages are malformed on purpose",
+        "position": {
+          "x": 340,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.ValidateJson",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Schema Access Strategy": "SCHEMA_CONTENT_PROPERTY",
+          "JSON Schema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"required\": [\n    \"device_id\",\n    \"metric\",\n    \"value\",\n    \"event_time\"\n  ],\n  \"properties\": {\n    \"device_id\": {\n      \"type\": \"string\"\n    },\n    \"metric\": {\n      \"type\": \"string\"\n    },\n    \"value\": {\n      \"type\": \"number\"\n    },\n    \"event_time\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Schema Access Strategy": {
+            "name": "Schema Access Strategy",
+            "displayName": "Schema Access Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "JSON Schema": {
+            "name": "JSON Schema",
+            "displayName": "JSON Schema",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "12189712-8578-40ac-b41a-17785ae23f99",
+        "instanceIdentifier": null,
+        "name": "Extract fields to attributes",
+        "comments": "Promotes JSON fields into FlowFile attributes for routing",
+        "position": {
+          "x": 680,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.EvaluateJsonPath",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Destination": "flowfile-attribute",
+          "Return Type": "auto-detect",
+          "device_id": "$.device_id",
+          "metric": "$.metric",
+          "value": "$.value",
+          "event_time": "$.event_time",
+          "Null Value Representation": "empty string"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Destination": {
+            "name": "Destination",
+            "displayName": "Destination",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Return Type": {
+            "name": "Return Type",
+            "displayName": "Return Type",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Null Value Representation": {
+            "name": "Null Value Representation",
+            "displayName": "Null Value Representation",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "1fdc709b-d4bd-4acc-8901-ceb3c2671d91",
+        "instanceIdentifier": null,
+        "name": "Valid data guard",
+        "comments": "Defense-in-depth second check on top of ValidateJson",
+        "position": {
+          "x": 1020,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.RouteOnAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "valid": "${device_id:isEmpty():not():and(${value:isEmpty():not()})}",
+          "invalid": "${device_id:isEmpty():or(${value:isEmpty()})}"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "unmatched"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {},
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "db8af0e8-ee08-44ee-b698-7db89e37eab8",
+        "instanceIdentifier": null,
+        "name": "Insert into telemetry_enriched",
+        "comments": "JDBC sink: one simulator message = one SQL INSERT",
+        "position": {
+          "x": 1360,
+          "y": -170
+        },
+        "type": "org.apache.nifi.processors.standard.PutDatabaseRecord",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Record Reader": "db2d5077-0c62-4d83-ac7a-a0be872870cf",
+          "Statement Type": "INSERT",
+          "Table Name": "telemetry_enriched",
+          "Database Connection Pooling Service": "8c99fe8b-1a20-4f08-a58a-caa162f4f399",
+          "Translate Field Names": "true",
+          "Unmatched Field Behavior": "Ignore Unmatched Fields"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Record Reader": {
+            "name": "Record Reader",
+            "displayName": "Record Reader",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          },
+          "Statement Type": {
+            "name": "Statement Type",
+            "displayName": "Statement Type",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Table Name": {
+            "name": "Table Name",
+            "displayName": "Table Name",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database Connection Pooling Service": {
+            "name": "Database Connection Pooling Service",
+            "displayName": "Database Connection Pooling Service",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          },
+          "Translate Field Names": {
+            "name": "Translate Field Names",
+            "displayName": "Translate Field Names",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Unmatched Field Behavior": {
+            "name": "Unmatched Field Behavior",
+            "displayName": "Unmatched Field Behavior",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "cff12b8f-8ac7-42a4-b1b2-9d671140a3ea",
+        "instanceIdentifier": null,
+        "name": "Threshold temperature > 30",
+        "comments": "Business rule temp_above_30 - routes hot readings to the alert branch",
+        "position": {
+          "x": 1700,
+          "y": -170
+        },
+        "type": "org.apache.nifi.processors.standard.RouteOnAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "temp_above_30": "${metric:equals('temperature_c'):and(${value:toNumber():gt(30)})}"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "unmatched"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {},
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "63c0d670-1ba6-40fe-a443-cd498a8e8b0f",
+        "instanceIdentifier": null,
+        "name": "Tag alert rule",
+        "comments": "Adds the NOT NULL 'rule' column value to the alert record",
+        "position": {
+          "x": 2040,
+          "y": -170
+        },
+        "type": "org.apache.nifi.processors.standard.UpdateRecord",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Record Reader": "db2d5077-0c62-4d83-ac7a-a0be872870cf",
+          "Record Writer": "e9abff90-88bd-4d44-902e-29e597d75dc3",
+          "Replacement Value Strategy": "literal-value",
+          "/rule": "temp_above_30"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Record Reader": {
+            "name": "Record Reader",
+            "displayName": "Record Reader",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          },
+          "Record Writer": {
+            "name": "Record Writer",
+            "displayName": "Record Writer",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          },
+          "Replacement Value Strategy": {
+            "name": "Replacement Value Strategy",
+            "displayName": "Replacement Value Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "73721f14-2fdc-44e5-ba61-a277a325a18c",
+        "instanceIdentifier": null,
+        "name": "Insert into alerts",
+        "comments": "Alert branch JDBC sink",
+        "position": {
+          "x": 2380,
+          "y": -170
+        },
+        "type": "org.apache.nifi.processors.standard.PutDatabaseRecord",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Record Reader": "db2d5077-0c62-4d83-ac7a-a0be872870cf",
+          "Statement Type": "INSERT",
+          "Table Name": "alerts",
+          "Database Connection Pooling Service": "8c99fe8b-1a20-4f08-a58a-caa162f4f399",
+          "Translate Field Names": "true",
+          "Unmatched Field Behavior": "Ignore Unmatched Fields"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Record Reader": {
+            "name": "Record Reader",
+            "displayName": "Record Reader",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          },
+          "Statement Type": {
+            "name": "Statement Type",
+            "displayName": "Statement Type",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Table Name": {
+            "name": "Table Name",
+            "displayName": "Table Name",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database Connection Pooling Service": {
+            "name": "Database Connection Pooling Service",
+            "displayName": "Database Connection Pooling Service",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          },
+          "Translate Field Names": {
+            "name": "Translate Field Names",
+            "displayName": "Translate Field Names",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Unmatched Field Behavior": {
+            "name": "Unmatched Field Behavior",
+            "displayName": "Unmatched Field Behavior",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "0f50de96-5835-4ba8-aca9-8abc6490ce70",
+        "instanceIdentifier": null,
+        "name": "Save quarantined payload",
+        "comments": "",
+        "position": {
+          "x": 1360,
+          "y": 170
+        },
+        "type": "org.apache.nifi.processors.standard.PutFile",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Directory": "/data/archive/quarantine",
+          "Conflict Resolution Strategy": "replace",
+          "Create Missing Directories": "true"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Directory": {
+            "name": "Directory",
+            "displayName": "Directory",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Conflict Resolution Strategy": {
+            "name": "Conflict Resolution Strategy",
+            "displayName": "Conflict Resolution Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Create Missing Directories": {
+            "name": "Create Missing Directories",
+            "displayName": "Create Missing Directories",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "5737e178-2bf1-4d5b-bccd-cddb860403b6",
+        "instanceIdentifier": null,
+        "name": "Log rejected / failures",
+        "comments": "",
+        "position": {
+          "x": 2040,
+          "y": 170
+        },
+        "type": "org.apache.nifi.processors.standard.LogAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Log Level": "warn",
+          "Log Payload": "false"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Log Level": {
+            "name": "Log Level",
+            "displayName": "Log Level",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Log Payload": {
+            "name": "Log Payload",
+            "displayName": "Log Payload",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      }
+    ],
+    "connections": [
+      {
+        "identifier": "997ff493-5d8d-4c67-af51-136031cfcbba",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "ConsumeMQTT telemetry",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "305f71a2-cfd9-43f0-9e03-20334657e274"
+        },
+        "destination": {
+          "name": "ValidateJson telemetry schema",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "61790aab-9ea9-489d-b7e8-562151475ad1"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "Message"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "11a34d55-a533-452f-8c03-500dbfb41b77",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "ValidateJson telemetry schema",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "61790aab-9ea9-489d-b7e8-562151475ad1"
+        },
+        "destination": {
+          "name": "Extract fields to attributes",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "12189712-8578-40ac-b41a-17785ae23f99"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "valid"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "0dbbfdf2-3e97-4b65-9759-810c5bb39428",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "ValidateJson telemetry schema",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "61790aab-9ea9-489d-b7e8-562151475ad1"
+        },
+        "destination": {
+          "name": "Save quarantined payload",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "0f50de96-5835-4ba8-aca9-8abc6490ce70"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "invalid"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "2d75f82a-964c-46cb-9543-ca933bf43144",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "ValidateJson telemetry schema",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "61790aab-9ea9-489d-b7e8-562151475ad1"
+        },
+        "destination": {
+          "name": "Save quarantined payload",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "0f50de96-5835-4ba8-aca9-8abc6490ce70"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "5b71d81b-1360-4d07-ba79-d33ffb5f055b",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Extract fields to attributes",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "12189712-8578-40ac-b41a-17785ae23f99"
+        },
+        "destination": {
+          "name": "Valid data guard",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "1fdc709b-d4bd-4acc-8901-ceb3c2671d91"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "matched"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "ee37e02e-5b89-4579-81bc-32db1f04c9ab",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Extract fields to attributes",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "12189712-8578-40ac-b41a-17785ae23f99"
+        },
+        "destination": {
+          "name": "Save quarantined payload",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "0f50de96-5835-4ba8-aca9-8abc6490ce70"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "unmatched"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "cfacab4d-d34d-4515-85bc-52673378c686",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Extract fields to attributes",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "12189712-8578-40ac-b41a-17785ae23f99"
+        },
+        "destination": {
+          "name": "Save quarantined payload",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "0f50de96-5835-4ba8-aca9-8abc6490ce70"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "8059583a-54cd-4fce-bc2f-a788cada4d19",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Valid data guard",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "1fdc709b-d4bd-4acc-8901-ceb3c2671d91"
+        },
+        "destination": {
+          "name": "Insert into telemetry_enriched",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "db8af0e8-ee08-44ee-b698-7db89e37eab8"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "valid"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "076d83a3-a709-43db-99b6-b7a8ceae891a",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Valid data guard",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "1fdc709b-d4bd-4acc-8901-ceb3c2671d91"
+        },
+        "destination": {
+          "name": "Save quarantined payload",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "0f50de96-5835-4ba8-aca9-8abc6490ce70"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "invalid"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "daf81bbc-327a-4c4b-b926-4003210a966d",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Insert into telemetry_enriched",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "db8af0e8-ee08-44ee-b698-7db89e37eab8"
+        },
+        "destination": {
+          "name": "Threshold temperature > 30",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "cff12b8f-8ac7-42a4-b1b2-9d671140a3ea"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "77a6aa0b-fc79-47bf-af4f-b5f76fb9a97a",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Insert into telemetry_enriched",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "db8af0e8-ee08-44ee-b698-7db89e37eab8"
+        },
+        "destination": {
+          "name": "Log rejected / failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "5737e178-2bf1-4d5b-bccd-cddb860403b6"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "9831a39c-b11d-4474-99e8-6af3f1b7ac5f",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Insert into telemetry_enriched",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "db8af0e8-ee08-44ee-b698-7db89e37eab8"
+        },
+        "destination": {
+          "name": "Log rejected / failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "5737e178-2bf1-4d5b-bccd-cddb860403b6"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "retry"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "4702ebe2-3186-4a8c-9b59-b45af5cfb0b8",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Threshold temperature > 30",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "cff12b8f-8ac7-42a4-b1b2-9d671140a3ea"
+        },
+        "destination": {
+          "name": "Tag alert rule",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "63c0d670-1ba6-40fe-a443-cd498a8e8b0f"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "temp_above_30"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "62ff1e7c-483d-4fb8-abdb-cf0349c30977",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Tag alert rule",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "63c0d670-1ba6-40fe-a443-cd498a8e8b0f"
+        },
+        "destination": {
+          "name": "Insert into alerts",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "73721f14-2fdc-44e5-ba61-a277a325a18c"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "dcbdef4a-1e9a-4fde-a752-805651775d1f",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Tag alert rule",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "63c0d670-1ba6-40fe-a443-cd498a8e8b0f"
+        },
+        "destination": {
+          "name": "Log rejected / failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "5737e178-2bf1-4d5b-bccd-cddb860403b6"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "4b8d9795-805b-4e87-ab7a-5c0aea23bbc7",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Insert into alerts",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "73721f14-2fdc-44e5-ba61-a277a325a18c"
+        },
+        "destination": {
+          "name": "Log rejected / failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "5737e178-2bf1-4d5b-bccd-cddb860403b6"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "b98c9195-e7ef-4ef7-976b-ccfa0475e923",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Insert into alerts",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "73721f14-2fdc-44e5-ba61-a277a325a18c"
+        },
+        "destination": {
+          "name": "Log rejected / failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "5737e178-2bf1-4d5b-bccd-cddb860403b6"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "retry"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "acec2076-f2ee-4bff-842b-316eeb1e9879",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Save quarantined payload",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "0f50de96-5835-4ba8-aca9-8abc6490ce70"
+        },
+        "destination": {
+          "name": "Log rejected / failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "5737e178-2bf1-4d5b-bccd-cddb860403b6"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "e29d6e97-8f82-4102-a4f9-4943da3c53f9",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Save quarantined payload",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "0f50de96-5835-4ba8-aca9-8abc6490ce70"
+        },
+        "destination": {
+          "name": "Log rejected / failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "5737e178-2bf1-4d5b-bccd-cddb860403b6"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "8775e775-093b-4839-9d34-dabb3edfcf79",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 680.0,
+          "y": 85.0
+        },
+        "source": {
+          "id": "305f71a2-cfd9-43f0-9e03-20334657e274",
+          "name": "ConsumeMQTT telemetry",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR"
+        },
+        "destination": {
+          "id": "0f50de96-5835-4ba8-aca9-8abc6490ce70",
+          "name": "Save quarantined payload",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "parse.failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      }
+    ],
+    "controllerServices": [
+      {
+        "identifier": "8c99fe8b-1a20-4f08-a58a-caa162f4f399",
+        "instanceIdentifier": null,
+        "name": "MariaDB - iotdb",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-dbcp-service-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Database Connection URL": "jdbc:mariadb://mariadb:3306/iotdb",
+          "Database Driver Class Name": "org.mariadb.jdbc.Driver",
+          "Database User": "iot",
+          "Password": "",
+          "Max Total Connections": "5",
+          "Database Driver Locations": "/opt/nifi/nifi-current/drivers/mariadb-java-client-4.0.0.jar"
+        },
+        "state": "DISABLED",
+        "componentType": "CONTROLLER_SERVICE",
+        "propertyDescriptors": {
+          "Database Connection URL": {
+            "name": "Database Connection URL",
+            "displayName": "Database Connection URL",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database Driver Class Name": {
+            "name": "Database Driver Class Name",
+            "displayName": "Database Driver Class Name",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database User": {
+            "name": "Database User",
+            "displayName": "Database User",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Password": {
+            "name": "Password",
+            "displayName": "Password",
+            "dynamic": false,
+            "sensitive": true,
+            "identifiesControllerService": false
+          },
+          "Max Total Connections": {
+            "name": "Max Total Connections",
+            "displayName": "Max Total Connections",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database Driver Locations": {
+            "name": "Database Driver Locations",
+            "displayName": "Database Driver Locations",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        }
+      },
+      {
+        "identifier": "db2d5077-0c62-4d83-ac7a-a0be872870cf",
+        "instanceIdentifier": null,
+        "name": "Telemetry JSON Reader (infer schema)",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "type": "org.apache.nifi.json.JsonTreeReader",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-record-serialization-services-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Schema Access Strategy": "infer-schema"
+        },
+        "state": "DISABLED",
+        "componentType": "CONTROLLER_SERVICE",
+        "propertyDescriptors": {
+          "Schema Access Strategy": {
+            "name": "Schema Access Strategy",
+            "displayName": "Schema Access Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        }
+      },
+      {
+        "identifier": "e9abff90-88bd-4d44-902e-29e597d75dc3",
+        "instanceIdentifier": null,
+        "name": "Telemetry JSON Writer (infer schema)",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "type": "org.apache.nifi.json.JsonRecordSetWriter",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-record-serialization-services-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Schema Access Strategy": "inherit-record-schema"
+        },
+        "state": "DISABLED",
+        "componentType": "CONTROLLER_SERVICE",
+        "propertyDescriptors": {
+          "Schema Access Strategy": {
+            "name": "Schema Access Strategy",
+            "displayName": "Schema Access Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        }
+      }
+    ],
+    "variables": {},
+    "componentType": "PROCESS_GROUP"
+  },
+  "parameterContexts": {},
+  "externalControllerServices": {},
+  "encoding-version": "1.5"
+}

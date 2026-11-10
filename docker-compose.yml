@@ -1,0 +1,127 @@
+x-nifi-common: &nifi-common
+  restart: unless-stopped
+  networks: [nifi-net]
+
+services:
+
+  nifi:
+    <<: *nifi-common
+    image: apache/nifi:2.12.0
+    container_name: nifi
+    ports:
+      - "8443:8443" # webUI + REST
+      - "8081:8081" # ListenHTTP endpoint
+    environment:
+      SINGLE_USER_CREDENTIALS_USERNAME: ${NIFI_USER:-admin}
+      SINGLE_USER_CREDENTIALS_PASSWORD: ${NIFI_PASSWORD:-changemeNifi2026}
+      NIFI_SENSITIVE_PROPS_KEY: ${NIFI_SENSITIVE_KEY:-a-32-char-min-sensitive-key-2026}
+      NIFI_WEB_PROXY_HOST: localhost:8443
+      NIFI_JVM_HEAP_INIT: 1g
+      NIFI_JVM_HEAP_MAX: 2g
+    volumes:
+      - nifi_conf:/opt/nifi/nifi-current/conf
+      - nifi_content:/opt/nifi/nifi-current/content_repository
+      - nifi_flowrepo:/opt/nifi/nifi-current/flowfile_repository
+      - nifi_provenance:/opt/nifi/nifi-current/provenance_repository
+      - nifi_state:/opt/nifi/nifi-current/state
+      - nifi_logs:/opt/nifi/nifi-current/logs
+
+      - ./drivers:/opt/nifi/nifi-current/drivers
+      - ./data/drop:/data/drop
+      - ./data/archive:/data/archive
+      - ./data/sftp:/data/sftp
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      mqtt:
+        condition: service_started
+
+  nifi-registry:
+    <<: *nifi-common
+    image: apache/nifi-registry:2.12.0
+    container_name: nifi-registry
+    ports:
+      - "18080:18080"
+    environment:
+      NIFI_REGISTRY_WEB_HTTP_PORT: 18080
+    volumes:
+      - registry_data:/opt/nifi-registry/nifi-registry-current/data
+
+  mariadb:
+    <<: *nifi-common
+    image: mariadb:lts
+    container_name: mariadb
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_DATABASE: iotdb
+      MARIADB_USER: iot
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-iotpass2026}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-rootpass2026}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./sql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mqtt:
+    <<: *nifi-common
+    image: eclipse-mosquitto:2.1.2-alpine
+    container_name: mqtt
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./conf/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  sftp:
+    <<: *nifi-common
+    image: atmoz/sftp:alpine
+    container_name: sftp
+    ports:
+      - "2222:22"
+    command: iot:${SFTP_PASSWORD:-iotpass2026}:1001
+    volumes:
+      - ./data/sftp:/home/iot/upload
+
+  prometheus:
+    <<: *nifi-common
+    image: prom/prometheus:v3
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./conf/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prom_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    <<: *nifi-common
+    image: grafana/grafana:13.3.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-grafana2026}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+
+networks:
+  nifi-net:
+    driver: bridge
+
+volumes:
+  nifi_conf:
+  nifi_content:
+  nifi_flowrepo:
+  nifi_provenance:
+  nifi_state:
+  nifi_logs:
+  registry_data:
+  mariadb_data:
+  prom_data:
+  grafana_data:

@@ -1,0 +1,661 @@
+{
+  "flowContents": {
+    "identifier": "671e61b2-f9fa-44ad-86e0-4ba902a0661b",
+    "instanceIdentifier": null,
+    "name": "HTTP-INGEST",
+    "comments": "HTTP ingest endpoint: POST http://localhost:8081/ingest - files land under /data/archive/http/<category>",
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "funnels": [],
+    "labels": [],
+    "processors": [
+      {
+        "identifier": "feb091e4-78df-4913-84e5-4bec89244cec",
+        "instanceIdentifier": null,
+        "name": "ListenHTTP :8081 /ingest",
+        "comments": "REST-capability: turns every HTTP POST body into a FlowFile",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.ListenHTTP",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Base Path": "ingest",
+          "Listening Port": "8081"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Base Path": {
+            "name": "Base Path",
+            "displayName": "Base Path",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Listening Port": {
+            "name": "Listening Port",
+            "displayName": "Listening Port",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "8a727404-84c0-43bc-84f4-e04c8ba7d1a1",
+        "instanceIdentifier": null,
+        "name": "Set ingest attributes",
+        "comments": "Tags every FlowFile with source + timestamp",
+        "position": {
+          "x": 340,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.attributes.UpdateAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-update-attribute-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "source.system": "http-push",
+          "ingest.ts": "${now():format('yyyy-MM-dd HH:mm:ss')}"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {},
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "fde6505e-b3c4-49a8-b980-fd5aabef37aa",
+        "instanceIdentifier": null,
+        "name": "Route by mime.type",
+        "comments": "json / binary / other - mutually exclusive conditions",
+        "position": {
+          "x": 680,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.RouteOnAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "json": "${mime.type:toLower():equals('application/json')}",
+          "binary": "${mime.type:toLower():startsWith('application/octet-stream')}",
+          "other": "${mime.type:toLower():equals('application/json'):not():and(${mime.type:toLower():startsWith('application/octet-stream'):not()})}"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "unmatched"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {},
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "31237e57-be2d-43de-a79f-45e5ff921af5",
+        "instanceIdentifier": null,
+        "name": "Archive JSON",
+        "comments": "",
+        "position": {
+          "x": 1020,
+          "y": -170
+        },
+        "type": "org.apache.nifi.processors.standard.PutFile",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Directory": "/data/archive/http/json",
+          "Conflict Resolution Strategy": "replace",
+          "Create Missing Directories": "true"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Directory": {
+            "name": "Directory",
+            "displayName": "Directory",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Conflict Resolution Strategy": {
+            "name": "Conflict Resolution Strategy",
+            "displayName": "Conflict Resolution Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Create Missing Directories": {
+            "name": "Create Missing Directories",
+            "displayName": "Create Missing Directories",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "eeadcf75-8e63-477d-b768-a8ed3cb88c2e",
+        "instanceIdentifier": null,
+        "name": "Archive binary",
+        "comments": "",
+        "position": {
+          "x": 1020,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.PutFile",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Directory": "/data/archive/http/binary",
+          "Conflict Resolution Strategy": "replace",
+          "Create Missing Directories": "true"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Directory": {
+            "name": "Directory",
+            "displayName": "Directory",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Conflict Resolution Strategy": {
+            "name": "Conflict Resolution Strategy",
+            "displayName": "Conflict Resolution Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Create Missing Directories": {
+            "name": "Create Missing Directories",
+            "displayName": "Create Missing Directories",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "994bb8c2-5672-4dbe-bfcf-4c5382f210a7",
+        "instanceIdentifier": null,
+        "name": "Archive misc",
+        "comments": "",
+        "position": {
+          "x": 1020,
+          "y": 170
+        },
+        "type": "org.apache.nifi.processors.standard.PutFile",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Directory": "/data/archive/http/misc",
+          "Conflict Resolution Strategy": "replace",
+          "Create Missing Directories": "true"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Directory": {
+            "name": "Directory",
+            "displayName": "Directory",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Conflict Resolution Strategy": {
+            "name": "Conflict Resolution Strategy",
+            "displayName": "Conflict Resolution Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Create Missing Directories": {
+            "name": "Create Missing Directories",
+            "displayName": "Create Missing Directories",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "fc334a52-2c03-4097-b4d1-3b204f1f813a",
+        "instanceIdentifier": null,
+        "name": "Log archive failures",
+        "comments": "",
+        "position": {
+          "x": 1360,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.LogAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Log Level": "warn",
+          "Log Payload": "false"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Log Level": {
+            "name": "Log Level",
+            "displayName": "Log Level",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Log Payload": {
+            "name": "Log Payload",
+            "displayName": "Log Payload",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      }
+    ],
+    "connections": [
+      {
+        "identifier": "6d7ec6a6-97e8-4602-8125-452807cc0ec5",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "ListenHTTP :8081 /ingest",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "feb091e4-78df-4913-84e5-4bec89244cec"
+        },
+        "destination": {
+          "name": "Set ingest attributes",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "8a727404-84c0-43bc-84f4-e04c8ba7d1a1"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "03ab44fd-bf05-4a36-94e9-eb8fd9537e74",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Set ingest attributes",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "8a727404-84c0-43bc-84f4-e04c8ba7d1a1"
+        },
+        "destination": {
+          "name": "Route by mime.type",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "fde6505e-b3c4-49a8-b980-fd5aabef37aa"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "080fa671-135f-4e3d-a091-b3ef87b22e27",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Route by mime.type",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "fde6505e-b3c4-49a8-b980-fd5aabef37aa"
+        },
+        "destination": {
+          "name": "Archive JSON",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "31237e57-be2d-43de-a79f-45e5ff921af5"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "json"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "47afd61f-871e-40aa-985e-cd52b9ca430b",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Route by mime.type",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "fde6505e-b3c4-49a8-b980-fd5aabef37aa"
+        },
+        "destination": {
+          "name": "Archive binary",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "eeadcf75-8e63-477d-b768-a8ed3cb88c2e"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "binary"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "0a16cfa5-c878-4bec-b56e-c44c2948dde5",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Route by mime.type",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "fde6505e-b3c4-49a8-b980-fd5aabef37aa"
+        },
+        "destination": {
+          "name": "Archive misc",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "994bb8c2-5672-4dbe-bfcf-4c5382f210a7"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "other"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "214f7295-1a3f-4c43-a99f-65b4a54b8b64",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Archive JSON",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "31237e57-be2d-43de-a79f-45e5ff921af5"
+        },
+        "destination": {
+          "name": "Log archive failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "fc334a52-2c03-4097-b4d1-3b204f1f813a"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "8a6c255b-f4b4-407c-aea9-6fe65d2a9368",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Archive binary",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "eeadcf75-8e63-477d-b768-a8ed3cb88c2e"
+        },
+        "destination": {
+          "name": "Log archive failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "fc334a52-2c03-4097-b4d1-3b204f1f813a"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "8a567d47-be1a-4a4b-a2d6-eb13ee28feb5",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Archive misc",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "994bb8c2-5672-4dbe-bfcf-4c5382f210a7"
+        },
+        "destination": {
+          "name": "Log archive failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "fc334a52-2c03-4097-b4d1-3b204f1f813a"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      }
+    ],
+    "controllerServices": [],
+    "variables": {},
+    "componentType": "PROCESS_GROUP"
+  },
+  "parameterContexts": {},
+  "externalControllerServices": {},
+  "encoding-version": "1.5"
+}

@@ -1,0 +1,15 @@
+# Prometheus scrapes NiFi's PrometheusReportingTask endpoint.
+# The reporting task is created in the NiFi UI (or via REST) and listens on
+# port 9092 *inside* the nifi container, hence the service name below.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: nifi
+    scheme: http
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["nifi:9092"]
+        labels:
+          service: nifi-iot-datahub

@@ -1,0 +1,24 @@
+Nghiên cứu và triển khai Apache NiFi
+
+Chạy:
+
+1. Copy .env.example sang .env, sửa nếu cần thiết
+2. Sửa quyền cho data/ (nếu cần thiết)
+	data/archive và data/drop chỉnh owner thành 1000:1000,
+	data/sftp chỉnh owner thành 1001:1001.
+2. Chạy docker compose up -d
+3. Import flow
+-	Trong flows/ có cái script import_flows.py, cần requests
+	(https://pypi.org/project/requests) để chạy:
+	python flows/import_flows.py
+4. Bật các flow kia lên
+-	Mở NiFi lên (https://localhost:8443), đăng nhập theo tài khoản/mật khẩu
+trong .env. Bên trái sẽ có một cái cửa sổ ghi "NiFi Flows", bật các flows lên
+rồi cho chạy trong đó.
+5. Trong generators/ có một số script sinh dữ liệu giả:
+	python generators/sensors_sim.py --count <n>
+	python generators/http_uploader.py
+	python generators/file_factory.py
+
+-	Sau này có thể phải chế lại những script này/thêm các docker khác chỉ
+để sinh dữ liệu giả rồi gửi về chứ cũng không thể cho script chạy tay mãi được.

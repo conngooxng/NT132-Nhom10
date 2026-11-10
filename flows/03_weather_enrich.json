@@ -1,0 +1,1308 @@
+{
+  "flowContents": {
+    "identifier": "59442637-a1e8-4275-8b04-2b0fa97888f2",
+    "instanceIdentifier": null,
+    "name": "WEATHER-REST",
+    "comments": "JDBC read (device_registry) -> InvokeHTTP Open-Meteo weather REST API -> archive snapshot JSON under /data/archive/weather",
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "funnels": [],
+    "labels": [],
+    "processors": [
+      {
+        "identifier": "cc5ef145-67b6-400e-891d-1fdd746eb676",
+        "instanceIdentifier": null,
+        "name": "Read device registry",
+        "comments": "JDBC source: one row per registered device (with coordinates)",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.ExecuteSQL",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Database Connection Pooling Service": "6dcae53e-6357-4c1a-97aa-a3c0c89f4210",
+          "SQL Query": "SELECT device_id, site_name, latitude, longitude FROM device_registry",
+          "Max Rows Per FlowFile": "0"
+        },
+        "style": {},
+        "schedulingPeriod": "3600 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Database Connection Pooling Service": {
+            "name": "Database Connection Pooling Service",
+            "displayName": "Database Connection Pooling Service",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          },
+          "SQL Query": {
+            "name": "SQL Query",
+            "displayName": "SQL Query",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Max Rows Per FlowFile": {
+            "name": "Max Rows Per FlowFile",
+            "displayName": "Max Rows Per FlowFile",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "dba750b3-f434-4e00-8996-950f1d70df5f",
+        "instanceIdentifier": null,
+        "name": "Avro to JSON",
+        "comments": "",
+        "position": {
+          "x": 340,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.ConvertRecord",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Record Reader": "f454c302-d8e9-4ac5-b323-43356621ef05",
+          "Record Writer": "22250ad7-556b-48d0-8663-982e12fd7b31"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Record Reader": {
+            "name": "Record Reader",
+            "displayName": "Record Reader",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          },
+          "Record Writer": {
+            "name": "Record Writer",
+            "displayName": "Record Writer",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": true
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "d5768a1a-0183-4a97-bb90-346ec1e42237",
+        "instanceIdentifier": null,
+        "name": "Split per device",
+        "comments": "One FlowFile per device row",
+        "position": {
+          "x": 680,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.SplitJson",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "JsonPath Expression": "$[*]"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "original"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "JsonPath Expression": {
+            "name": "JsonPath Expression",
+            "displayName": "JsonPath Expression",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "524648b0-e8d6-46a4-ac8e-c61e6f45783f",
+        "instanceIdentifier": null,
+        "name": "Extract coordinates",
+        "comments": "",
+        "position": {
+          "x": 1020,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.EvaluateJsonPath",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Destination": "flowfile-attribute",
+          "Return Type": "auto-detect",
+          "device_id": "$.device_id",
+          "site_name": "$.site_name",
+          "latitude": "$.latitude",
+          "longitude": "$.longitude",
+          "Null Value Representation": "empty string"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Destination": {
+            "name": "Destination",
+            "displayName": "Destination",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Return Type": {
+            "name": "Return Type",
+            "displayName": "Return Type",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Null Value Representation": {
+            "name": "Null Value Representation",
+            "displayName": "Null Value Representation",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "6b8284d2-9943-4db6-b2b7-5b5f06b09f5d",
+        "instanceIdentifier": null,
+        "name": "Build weather URL",
+        "comments": "REST-capability: per-device API URL built from JDBC rows",
+        "position": {
+          "x": 1360,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.attributes.UpdateAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-update-attribute-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "weather.url": "https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {},
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "8b52af2c-4aa8-4fd2-94c2-d6ae50b5398f",
+        "instanceIdentifier": null,
+        "name": "Call Open-Meteo API",
+        "comments": "Free weather REST API - no key required",
+        "position": {
+          "x": 1700,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.InvokeHTTP",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "HTTP Method": "GET",
+          "Connection Timeout": "5 secs",
+          "HTTP URL": "${weather.url}",
+          "Socket Read Timeout": "15 secs"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "Original"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "HTTP Method": {
+            "name": "HTTP Method",
+            "displayName": "HTTP Method",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Connection Timeout": {
+            "name": "Connection Timeout",
+            "displayName": "Connection Timeout",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "HTTP URL": {
+            "name": "HTTP URL",
+            "displayName": "HTTP URL",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Socket Read Timeout": {
+            "name": "Socket Read Timeout",
+            "displayName": "Socket Read Timeout",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "09702fd6-f780-44cf-acd1-32e013f31f99",
+        "instanceIdentifier": null,
+        "name": "Extract weather fields",
+        "comments": "",
+        "position": {
+          "x": 2040,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.EvaluateJsonPath",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Destination": "flowfile-attribute",
+          "Return Type": "auto-detect",
+          "outdoor_temp": "$.current.temperature_2m",
+          "weather_code": "$.current.weather_code",
+          "Null Value Representation": "empty string"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Destination": {
+            "name": "Destination",
+            "displayName": "Destination",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Return Type": {
+            "name": "Return Type",
+            "displayName": "Return Type",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Null Value Representation": {
+            "name": "Null Value Representation",
+            "displayName": "Null Value Representation",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "703a7532-7ab3-414f-ba6c-56003ef420cd",
+        "instanceIdentifier": null,
+        "name": "Name snapshot file",
+        "comments": "",
+        "position": {
+          "x": 2380,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.attributes.UpdateAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-update-attribute-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "filename": "weather_${device_id}_${now():format('yyyyMMdd-HHmmss')}.json"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {},
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "c03f5351-eb66-4099-848c-ed3b13e5d919",
+        "instanceIdentifier": null,
+        "name": "Archive weather snapshot",
+        "comments": "",
+        "position": {
+          "x": 2720,
+          "y": 0
+        },
+        "type": "org.apache.nifi.processors.standard.PutFile",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Directory": "/data/archive/weather",
+          "Conflict Resolution Strategy": "replace",
+          "Create Missing Directories": "true"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Directory": {
+            "name": "Directory",
+            "displayName": "Directory",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Conflict Resolution Strategy": {
+            "name": "Conflict Resolution Strategy",
+            "displayName": "Conflict Resolution Strategy",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Create Missing Directories": {
+            "name": "Create Missing Directories",
+            "displayName": "Create Missing Directories",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      },
+      {
+        "identifier": "56db87e0-4537-4b87-ae08-9e510a6ac97b",
+        "instanceIdentifier": null,
+        "name": "Log weather failures",
+        "comments": "",
+        "position": {
+          "x": 2380,
+          "y": 200
+        },
+        "type": "org.apache.nifi.processors.standard.LogAttribute",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Log Level": "warn",
+          "Log Payload": "false"
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "componentType": "PROCESSOR",
+        "propertyDescriptors": {
+          "Log Level": {
+            "name": "Log Level",
+            "displayName": "Log Level",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Log Payload": {
+            "name": "Log Payload",
+            "displayName": "Log Payload",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        },
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "DISABLED",
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "retryCount": 0,
+        "retriedRelationships": []
+      }
+    ],
+    "connections": [
+      {
+        "identifier": "21b2977f-0723-4729-b776-6dd0240d1fc4",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Read device registry",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "cc5ef145-67b6-400e-891d-1fdd746eb676"
+        },
+        "destination": {
+          "name": "Avro to JSON",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "dba750b3-f434-4e00-8996-950f1d70df5f"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "dcb1d8f6-59c0-469e-b20d-ba54e8839ac9",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Read device registry",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "cc5ef145-67b6-400e-891d-1fdd746eb676"
+        },
+        "destination": {
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "7717781f-558c-4588-bbf6-6b3b32f208e5",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Avro to JSON",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "dba750b3-f434-4e00-8996-950f1d70df5f"
+        },
+        "destination": {
+          "name": "Split per device",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "d5768a1a-0183-4a97-bb90-346ec1e42237"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "58d2e68a-35c4-4396-9ea2-dc7837846a90",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Avro to JSON",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "dba750b3-f434-4e00-8996-950f1d70df5f"
+        },
+        "destination": {
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "0be2b35a-0d65-42f7-a1ba-e02e75d900bb",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Split per device",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "d5768a1a-0183-4a97-bb90-346ec1e42237"
+        },
+        "destination": {
+          "name": "Extract coordinates",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "524648b0-e8d6-46a4-ac8e-c61e6f45783f"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "split"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "34e69c6c-b4cd-45fe-927f-0308e3544ec3",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Extract coordinates",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "524648b0-e8d6-46a4-ac8e-c61e6f45783f"
+        },
+        "destination": {
+          "name": "Build weather URL",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "6b8284d2-9943-4db6-b2b7-5b5f06b09f5d"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "matched"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "18b23178-e691-4040-a25b-cd4e7e3c36f0",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Extract coordinates",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "524648b0-e8d6-46a4-ac8e-c61e6f45783f"
+        },
+        "destination": {
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "unmatched"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "1cf3c67b-8249-431a-9daf-ed5ebc7f27b3",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Extract coordinates",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "524648b0-e8d6-46a4-ac8e-c61e6f45783f"
+        },
+        "destination": {
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "1dd349bc-84d0-4e5c-a02d-8ccaef5a1338",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Build weather URL",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "6b8284d2-9943-4db6-b2b7-5b5f06b09f5d"
+        },
+        "destination": {
+          "name": "Call Open-Meteo API",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "8b52af2c-4aa8-4fd2-94c2-d6ae50b5398f"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "572fec52-85ee-4303-ae2d-7c863bf34a4b",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Call Open-Meteo API",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "8b52af2c-4aa8-4fd2-94c2-d6ae50b5398f"
+        },
+        "destination": {
+          "name": "Extract weather fields",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "09702fd6-f780-44cf-acd1-32e013f31f99"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "Response"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "0bd19dbf-9ccc-431f-9370-1ab3d5a189ee",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Call Open-Meteo API",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "8b52af2c-4aa8-4fd2-94c2-d6ae50b5398f"
+        },
+        "destination": {
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "Retry"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "448bbf85-4ddb-4760-b766-fcfbcc100645",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Call Open-Meteo API",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "8b52af2c-4aa8-4fd2-94c2-d6ae50b5398f"
+        },
+        "destination": {
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "No Retry"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "e9ccceae-638f-4198-aed4-325c427fc157",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Call Open-Meteo API",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "8b52af2c-4aa8-4fd2-94c2-d6ae50b5398f"
+        },
+        "destination": {
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "Failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "ee8fba3d-f128-4a30-9e34-aca5e1a0b1a6",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Extract weather fields",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "09702fd6-f780-44cf-acd1-32e013f31f99"
+        },
+        "destination": {
+          "name": "Name snapshot file",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "703a7532-7ab3-414f-ba6c-56003ef420cd"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "matched"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "6ea3b094-aef8-4aa1-9cde-f28487894a03",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Extract weather fields",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "09702fd6-f780-44cf-acd1-32e013f31f99"
+        },
+        "destination": {
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "unmatched"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "0af90395-f92c-40f5-ae26-f18d0efcb7f9",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Extract weather fields",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "09702fd6-f780-44cf-acd1-32e013f31f99"
+        },
+        "destination": {
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "c31612e4-d0df-416c-9c6e-402760dfbd18",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Name snapshot file",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "703a7532-7ab3-414f-ba6c-56003ef420cd"
+        },
+        "destination": {
+          "name": "Archive weather snapshot",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "c03f5351-eb66-4099-848c-ed3b13e5d919"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "5b1a450a-79e4-4731-a3b3-b4642bcd0b99",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "source": {
+          "name": "Archive weather snapshot",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "c03f5351-eb66-4099-848c-ed3b13e5d919"
+        },
+        "destination": {
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR",
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      },
+      {
+        "identifier": "a9051309-3278-49ce-819e-13e9d82a7f32",
+        "instanceIdentifier": null,
+        "name": "",
+        "comments": "",
+        "position": {
+          "x": 1530.0,
+          "y": 100.0
+        },
+        "source": {
+          "id": "d5768a1a-0183-4a97-bb90-346ec1e42237",
+          "name": "Split per device",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR"
+        },
+        "destination": {
+          "id": "56db87e0-4537-4b87-ae08-9e510a6ac97b",
+          "name": "Log weather failures",
+          "type": "PROCESSOR",
+          "componentType": "PROCESSOR"
+        },
+        "flowFileExpiration": "0 sec",
+        "backPressureObjectThreshold": "10000",
+        "backPressureDataSizeThreshold": "1 GB",
+        "prioritizers": [],
+        "bends": [],
+        "selectedRelationships": [
+          "failure"
+        ],
+        "labelIndex": 0,
+        "zIndex": 0,
+        "componentType": "CONNECTION"
+      }
+    ],
+    "controllerServices": [
+      {
+        "identifier": "6dcae53e-6357-4c1a-97aa-a3c0c89f4210",
+        "instanceIdentifier": null,
+        "name": "MariaDB - iotdb (weather)",
+        "comments": "",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-dbcp-service-nar",
+          "version": "2.12.0"
+        },
+        "properties": {
+          "Database Connection URL": "jdbc:mariadb://mariadb:3306/iotdb",
+          "Database Driver Class Name": "org.mariadb.jdbc.Driver",
+          "Database User": "iot",
+          "Password": "",
+          "Max Total Connections": "5",
+          "Database Driver Locations": "/opt/nifi/nifi-current/drivers/mariadb-java-client-4.0.0.jar"
+        },
+        "state": "DISABLED",
+        "componentType": "CONTROLLER_SERVICE",
+        "propertyDescriptors": {
+          "Database Connection URL": {
+            "name": "Database Connection URL",
+            "displayName": "Database Connection URL",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database Driver Class Name": {
+            "name": "Database Driver Class Name",
+            "displayName": "Database Driver Class Name",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database User": {
+            "name": "Database User",
+            "displayName": "Database User",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Password": {
+            "name": "Password",
+            "displayName": "Password",
+            "dynamic": false,
+            "sensitive": true,
+            "identifiesControllerService": false
+          },
+          "Max Total Connections": {
+            "name": "Max Total Connections",
+            "displayName": "Max Total Connections",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          },
+          "Database Driver Locations": {
+            "name": "Database Driver Locations",
+            "displayName": "Database Driver Locations",
+            "dynamic": false,
+            "sensitive": false,
+            "identifiesControllerService": false
+          }
+        }
+      },
+      {
+        "identifier": "f454c302-d8e9-4ac5-b323-43356621ef05",
+        "instanceIdentifier": null,
+        "name": "Avro Reader",
+        "comments": "",
+        "position": {
+          "x": 340,
+          "y": 120
+        },
+        "type": "org.apache.nifi.avro.AvroReader",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-record-serialization-services-nar",
+          "version": "2.12.0"
+        },
+        "properties": {},
+        "state": "DISABLED",
+        "componentType": "CONTROLLER_SERVICE",
+        "propertyDescriptors": {}
+      },
+      {
+        "identifier": "22250ad7-556b-48d0-8663-982e12fd7b31",
+        "instanceIdentifier": null,
+        "name": "JSON Record Writer",
+        "comments": "",
+        "position": {
+          "x": 520,
+          "y": 120
+        },
+        "type": "org.apache.nifi.json.JsonRecordSetWriter",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-record-serialization-services-nar",
+          "version": "2.12.0"
+        },
+        "properties": {},
+        "state": "DISABLED",
+        "componentType": "CONTROLLER_SERVICE",
+        "propertyDescriptors": {}
+      }
+    ],
+    "variables": {},
+    "componentType": "PROCESS_GROUP"
+  },
+  "parameterContexts": {},
+  "externalControllerServices": {},
+  "encoding-version": "1.5"
+}

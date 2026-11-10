@@ -1,0 +1,92 @@
+# =============================================================================
+# GitHub Actions CI for the NiFi IoT DataHub flows
+#
+# Pipeline 1 (validate)  - runs on every push/PR:
+#   * every flows/0*.json must parse as JSON and contain the required keys
+#   * docker-compose.yml must be structurally valid
+#
+# Pipeline 2 (deploy-staging) - manual trigger (workflow_dispatch):
+#   * deploys the flows into a RUNNING NiFi via flows/import_flows.py
+#   * secrets needed: NIFI_URL, NIFI_USER, NIFI_PASSWORD
+#     (this mirrors what teams do with NiFi Registry + a dev->test->prod
+#      promotion path; Registry versioning is the source of truth, this
+#      script is the transport)
+# =============================================================================
+
+name: nifi-flow-ci
+
+on:
+  push:
+    paths:
+      - "flows/**"
+      - "docker-compose.yml"
+      - ".github/workflows/nifi-flow-ci.yml"
+  pull_request:
+    paths: ["flows/**"]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deploy target (staging|prod)"
+        required: true
+        default: "staging"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate flow definition JSON files
+        run: |
+          python - <<'PY'
+          import json, glob, sys
+          files = sorted(glob.glob("flows/0*_*.json"))
+          assert files, "no flow definition files found"
+          required = {"flowContents", "encoding-version"}
+          for f in files:
+              with open(f, encoding="utf-8") as fh:
+                  doc = json.load(fh)          # JSON must parse
+              missing = required - doc.keys()
+              assert not missing, f"{f}: missing keys {missing}"
+              pg = doc["flowContents"]
+              assert pg["processors"], f"{f}: empty process group"
+              # every connection must reference known processor ids
+              ids = {p["identifier"] for p in pg["processors"]}
+              for c in pg["connections"]:
+                  assert c["source"]["identifier"] in ids, f"{f}: dangling source"
+                  assert c["destination"]["identifier"] in ids, f"{f}: dangling dest"
+              print(f"[ok] {f}: {len(pg['processors'])} processors, "
+                    f"{len(pg['connections'])} connections")
+          print("All flow definitions are structurally valid.")
+          PY
+
+      - name: Validate docker-compose.yml
+        run: docker compose -f docker-compose.yml config > /dev/null
+
+  deploy-staging:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Deploy flows to running NiFi
+        env:
+          NIFI_URL: ${{ secrets.NIFI_URL }}
+          NIFI_USER: ${{ secrets.NIFI_USER }}
+          NIFI_PASSWORD: ${{ secrets.NIFI_PASSWORD }}
+        run: python flows/import_flows.py
