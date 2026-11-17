@@ -12,7 +12,9 @@ What it does, step by step:
        - DBCPConnectionPool "Password"  <- MARIADB_PASSWORD (default iotpass2026)
        - PutSFTP           "Password"   <- SFTP_PASSWORD   (default iotpass2026)
   5. Try to ENABLE every controller service of the imported groups.
-  6. Print a manual checklist for anything it could not do automatically.
+  6. Create + start the Prometheus reporting task on port 9092
+     (PrometheusMetricsReportingTask - skipped if it already exists).
+  7. Print a manual checklist for anything it could not do automatically.
 
 Usage:
     pip install requests
@@ -199,6 +201,65 @@ def configure_group(pg_id: str) -> None:
 
 
 # --------------------------------------------------------------------------
+def ensure_prometheus_reporting_task(root_id: str) -> None:
+    """Create + start the PrometheusMetricsReportingTask on port 9092 (idempotent).
+
+    NOTE: NiFi 2.x keeps reporting tasks at controller level, so the list and
+    create endpoints are /flow/reporting-tasks and /controller/reporting-tasks.
+    """
+    # 6a. skip if a Prometheus task already exists
+    tasks = api("GET", "/flow/reporting-tasks").get("reportingTasks", [])
+    for task in tasks:
+        if "PrometheusMetricsReportingTask" in task["component"]["type"]:
+            print("[=] Prometheus reporting task already present")
+            return
+
+    # 6b. discover the exact type + bundle from this NiFi version
+    types = api("GET", "/flow/reporting-task-types"
+                ).get("reportingTaskTypes", [])
+    match = next((t for t in types
+                  if t["type"].endswith("PrometheusMetricsReportingTask")),
+                 None)
+    if match is None:
+        # NiFi 2.x removed the PrometheusReportingTask entirely; metrics are
+        # re-served by the nifi-metrics exporter sidecar (docker-compose.yml).
+        print("[i] NiFi 2.x has no Prometheus reporting task; metrics are "
+              "served by the nifi-metrics exporter at "
+              "http://nifi-metrics:9092/metrics")
+        return
+
+    # 6c. find the descriptor key that holds the HTTP port
+    descriptors = (match.get("properties") or {}).get(
+        "propertiesDescriptor") or match.get("propertyDescriptors") or {}
+    port_key = next((key for key, desc in descriptors.items()
+                     if "port" in (desc.get("displayName") or key).lower()),
+                    "port")
+
+    # 6d. create the task (controller-level in NiFi 2.x)
+    body = {
+        "revision": {"version": 0},
+        "component": {
+            "type": match["type"],
+            "bundle": match["bundle"],
+            "name": "Prometheus Metrics",
+            "position": {"x": 0, "y": 0},
+            "properties": {port_key: "9092"},
+        },
+    }
+    entity = api("POST", "/controller/reporting-tasks",
+                 ok_codes=(200, 201), json=body)
+    task_id = entity["component"]["id"]
+    revision = entity["revision"]["version"]
+
+    # 6e. start it
+    api("PUT", f"/reporting-tasks/{task_id}/run-status",
+        json={"revision": {"version": revision, "clientId": CLIENT_ID},
+              "disconnectedNodeAcknowledged": False,
+              "state": "RUNNING"})
+    print("[+] Prometheus reporting task started on port 9092")
+
+
+# --------------------------------------------------------------------------
 def main() -> None:
     if not FLOW_FILES:
         die(f"No 0*_*.json flow definitions found in {FLOWS_DIR}")
@@ -238,6 +299,12 @@ def main() -> None:
             configure_group(pg_id)
         except Exception as exc:  # noqa: BLE001
             print(f"[!] Post-configuration of '{name}' incomplete: {exc}")
+
+    # 6. Prometheus reporting task (metrics on port 9092)
+    try:
+        ensure_prometheus_reporting_task(root_id)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[!] Could not set up the Prometheus reporting task: {exc}")
 
     print(
         "\n=== MANUAL CHECKLIST (only needed if any step above printed [!]) ===\n"

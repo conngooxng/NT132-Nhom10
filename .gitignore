@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# Runtime data produced by the flows / generators (keep the .nodelete
+# placeholders that preserve the directory structure in git)
+data/**
+!data/**/
+!data/**/.nodelete
+
+# Skill workspace (session scratch, never committed)
+.superpowers/

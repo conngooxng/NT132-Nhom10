@@ -68,3 +68,12 @@ CREATE TABLE ingest_audit (
 
 CREATE INDEX idx_telemetry_device_time ON telemetry_enriched (device_id, event_time DESC);
 CREATE INDEX idx_alerts_created ON alerts (created_at DESC);
+
+-- --------------------------------------------------------------------------
+-- Read-only user for Grafana (datasource: mariadb-iotdb)
+-- NOTE: this init script only runs on FIRST MariaDB boot; on an existing
+-- volume apply it manually once (see README).
+-- --------------------------------------------------------------------------
+CREATE USER IF NOT EXISTS 'grafana'@'%' IDENTIFIED BY 'grafana_ro_2026';
+GRANT SELECT ON iotdb.* TO 'grafana'@'%';
+FLUSH PRIVILEGES;

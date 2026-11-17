@@ -3,11 +3,13 @@
 #
 # Pipeline 1 (validate)  - runs on every push/PR:
 #   * every flows/0*.json must parse as JSON and contain the required keys
+#   * every grafana/provisioning/dashboards/*.json must parse and have panels
 #   * docker-compose.yml must be structurally valid
 #
 # Pipeline 2 (deploy-staging) - manual trigger (workflow_dispatch):
 #   * deploys the flows into a RUNNING NiFi via flows/import_flows.py
-#   * secrets needed: NIFI_URL, NIFI_USER, NIFI_PASSWORD
+#   * secrets needed: NIFI_URL, NIFI_USER, NIFI_PASSWORD,
+#     MARIADB_PASSWORD, SFTP_PASSWORD (fall back to 'iotpass2026' when unset)
 #     (this mirrors what teams do with NiFi Registry + a dev->test->prod
 #      promotion path; Registry versioning is the source of truth, this
 #      script is the transport)
@@ -19,10 +21,11 @@ on:
   push:
     paths:
       - "flows/**"
+      - "grafana/**"
       - "docker-compose.yml"
       - ".github/workflows/nifi-flow-ci.yml"
   pull_request:
-    paths: ["flows/**"]
+    paths: ["flows/**", "grafana/**"]
   workflow_dispatch:
     inputs:
       target:
@@ -56,13 +59,27 @@ jobs:
               pg = doc["flowContents"]
               assert pg["processors"], f"{f}: empty process group"
               # every connection must reference known processor ids
+              # (NiFi flow exports use "id" for connection endpoints,
+              #  "identifier" for processors — accept both)
               ids = {p["identifier"] for p in pg["processors"]}
               for c in pg["connections"]:
-                  assert c["source"]["identifier"] in ids, f"{f}: dangling source"
-                  assert c["destination"]["identifier"] in ids, f"{f}: dangling dest"
+                  for end in ("source", "destination"):
+                      ref = c[end].get("identifier") or c[end].get("id")
+                      assert ref in ids, f"{f}: dangling {end}"
               print(f"[ok] {f}: {len(pg['processors'])} processors, "
                     f"{len(pg['connections'])} connections")
           print("All flow definitions are structurally valid.")
+
+          # Grafana dashboard JSONs (Task 4): must parse and have panels
+          dashboards = sorted(glob.glob("grafana/provisioning/dashboards/*.json"))
+          assert dashboards, "no dashboard JSON files found"
+          for d in dashboards:
+              with open(d, encoding="utf-8") as fh:
+                  doc = json.load(fh)          # JSON must parse
+              panels = doc.get("panels") or []
+              assert panels, f"{d}: empty panels list"
+              print(f"[ok] {d}: {len(panels)} panels")
+          print("All dashboard definitions are structurally valid.")
           PY
 
       - name: Validate docker-compose.yml
@@ -89,4 +106,6 @@ jobs:
           NIFI_URL: ${{ secrets.NIFI_URL }}
           NIFI_USER: ${{ secrets.NIFI_USER }}
           NIFI_PASSWORD: ${{ secrets.NIFI_PASSWORD }}
+          MARIADB_PASSWORD: ${{ secrets.MARIADB_PASSWORD || 'iotpass2026' }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD || 'iotpass2026' }}
         run: python flows/import_flows.py

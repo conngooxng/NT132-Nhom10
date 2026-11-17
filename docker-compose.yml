@@ -99,6 +99,25 @@ services:
     volumes:
       - ./data/sftp:/home/iot/upload
 
+  nifi-metrics:
+    <<: *nifi-common
+    image: python:3.12-alpine
+    container_name: nifi-metrics
+    ports:
+      - "9092:9092" # Prometheus exporter (debugging; also reachable inside nifi-net)
+    command: >
+      sh -c "pip install --no-cache-dir requests -q &&
+             python /exporter/exporter.py"
+    volumes:
+      - ./conf/nifi-metrics:/exporter:ro
+    environment:
+      NIFI_URL: https://nifi:8443
+      NIFI_HOST_HEADER: localhost:8443 # Jetty cert/proxy host is localhost:8443
+      NIFI_USER: ${NIFI_USER:-admin}
+      NIFI_PASSWORD: ${NIFI_PASSWORD:-changemeNifi2026}
+    depends_on:
+      - nifi
+
   prometheus:
     <<: *nifi-common
     image: prom/prometheus:v3

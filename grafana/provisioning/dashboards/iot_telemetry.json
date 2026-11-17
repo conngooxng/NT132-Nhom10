@@ -1,0 +1,161 @@
+{
+  "uid": "iot-telemetry",
+  "title": "IoT Telemetry",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "timezone": "browser",
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "15s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Temperature by device",
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 0 },
+      "datasource": { "type": "mysql", "uid": "mariadb-iotdb" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientOpacity": 0,
+            "showPoints": "auto",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT event_time AS time, device_id AS metric, value FROM telemetry_enriched WHERE metric='temperature_c' AND $__timeFilter(event_time) ORDER BY event_time",
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "mariadb-iotdb" }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Latest reading: temp-001",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "mysql", "uid": "mariadb-iotdb" },
+      "fieldConfig": { "defaults": { "unit": "celsius" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justify": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT value FROM telemetry_enriched WHERE device_id='temp-001' ORDER BY event_time DESC LIMIT 1",
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "mariadb-iotdb" }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Latest reading: temp-002",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "mysql", "uid": "mariadb-iotdb" },
+      "fieldConfig": { "defaults": { "unit": "celsius" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justify": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT value FROM telemetry_enriched WHERE device_id='temp-002' ORDER BY event_time DESC LIMIT 1",
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "mariadb-iotdb" }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "barchart",
+      "title": "Ingest audit by media type",
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 4 },
+      "datasource": { "type": "mysql", "uid": "mariadb-iotdb" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "orientation": "auto",
+        "showValue": "always",
+        "stacking": "off",
+        "groupWidth": 0.7,
+        "barWidth": 0.97,
+        "xField": "metric",
+        "yField": "count",
+        "colorByField": "metric",
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "xTickLabelRotation": 0,
+        "yTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT media_type AS metric, COUNT(*) AS count FROM ingest_audit GROUP BY media_type",
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "mariadb-iotdb" }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Recent alerts",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 13 },
+      "datasource": { "type": "mysql", "uid": "mariadb-iotdb" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "created_at" },
+            "properties": [
+              { "id": "unit", "value": "dateTimeAsIso" },
+              { "id": "custom.columnWidth", "value": 200 }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": { "show": false, "reducer": ["sum"], "countRows": false, "fields": "" }
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT created_at, device_id, rule, value FROM alerts ORDER BY created_at DESC LIMIT 20",
+          "refId": "A",
+          "datasource": { "type": "mysql", "uid": "mariadb-iotdb" }
+        }
+      ]
+    }
+  ]
+}

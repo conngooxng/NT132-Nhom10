@@ -1,0 +1,212 @@
+{
+  "uid": "nifi-health",
+  "title": "NiFi Health",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "timezone": "browser",
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "15s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "FlowFiles Received",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-nifi" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justify": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(nifi_amount_flowfiles_received)",
+          "legendFormat": "FlowFiles Received (cumulative)",
+          "range": true,
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-nifi" }
+        },
+        {
+          "expr": "sum(max_over_time(nifi_amount_flowfiles_received[5m]))",
+          "legendFormat": "FlowFiles Received (5m peak)",
+          "range": true,
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-nifi" }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "FlowFiles Transferred",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-nifi" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justify": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(nifi_amount_flowfiles_transferred)",
+          "legendFormat": "FlowFiles Transferred (cumulative)",
+          "range": true,
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-nifi" }
+        },
+        {
+          "expr": "sum(max_over_time(nifi_amount_flowfiles_transferred[5m]))",
+          "legendFormat": "FlowFiles Transferred (5m peak)",
+          "range": true,
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-nifi" }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Queued FlowFiles",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-nifi" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justify": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(nifi_amount_items_queued)",
+          "legendFormat": "Queued FlowFiles",
+          "range": true,
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-nifi" }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Active Threads",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-nifi" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justify": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(nifi_amount_threads_active)",
+          "legendFormat": "Active Threads",
+          "range": true,
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-nifi" }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "JVM Heap Used / Committed",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-nifi" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }
+      },
+      "targets": [
+        {
+          "expr": "nifi_jvm_heap_used",
+          "legendFormat": "Heap Used",
+          "range": true,
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-nifi" }
+        },
+        {
+          "expr": "nifi_jvm_heap_committed",
+          "legendFormat": "Heap Committed (max heap proxy)",
+          "range": true,
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-nifi" }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Bytes Read / Written (cumulative)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-nifi" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }
+      },
+      "targets": [
+        {
+          "expr": "sum(nifi_total_bytes_read)",
+          "legendFormat": "Bytes Read",
+          "range": true,
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-nifi" }
+        },
+        {
+          "expr": "sum(nifi_total_bytes_written)",
+          "legendFormat": "Bytes Written",
+          "range": true,
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-nifi" }
+        }
+      ]
+    }
+  ]
+}
