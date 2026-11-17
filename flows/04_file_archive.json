@@ -958,7 +958,7 @@
           "version": "2.12.0"
         },
         "properties": {
-          "Schema Access Strategy": "Infer Schema"
+          "Schema Access Strategy": "infer-schema"
         },
         "state": "DISABLED",
         "componentType": "CONTROLLER_SERVICE",

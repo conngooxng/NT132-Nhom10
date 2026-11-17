@@ -67,6 +67,19 @@ services:
       timeout: 5s
       retries: 10
 
+  phpmyadmin:
+    <<: *nifi-common
+    image: phpmyadmin:apache
+    container_name: phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
   mqtt:
     <<: *nifi-common
     image: eclipse-mosquitto:2.1.2-alpine

@@ -7,11 +7,12 @@ broker. NiFi's ConsumeMQTT processor subscribes to  iot/telemetry/#  and
 routes each message through validation, enrichment and JDBC persistence.
 
 Every message is intentionally schema-consistent:
+Timestamps are UTC in MariaDB DATETIME format.
 
     {"device_id": "temp-001",
      "metric": "temperature_c",
      "value": 24.83,
-     "event_time": "2026-10-27T09:15:02.123Z"}
+    "event_time": "2026-10-27 09:15:02"}
 
 Roughly 1 in 12 messages is deliberately malformed (missing fields, string
 values) so learners can watch ValidateJson / RouteOnContent route failures
@@ -67,9 +68,7 @@ def build_message(device_id: str, metric: str, low: float, high: float) -> str:
         "device_id": device_id,
         "metric": metric,
         "value": round(random.uniform(low, high), 3),
-        "event_time": datetime.now(timezone.utc)
-                      .isoformat(timespec="milliseconds")
-                      .replace("+00:00", "Z"),
+        "event_time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
     }
     return json.dumps(payload)
 

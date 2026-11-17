@@ -5,16 +5,17 @@ file_factory.py - drops structured files into the NiFi watch folder.
 NiFi's GetFile processor polls ./data/drop (mounted at /data/drop inside the
 container) and picks up:
 
-    data/drop/legacy/readings_YYYYmmdd-HHMMSS.csv  (legacy CSV batch export)
-    data/drop/logs/gw-001_YYYYmmdd-HHMMSS.log      (unstructured device log)
+    data/drop/legacy/readings_YYYYmmdd-HHMMSS-ffffff.csv  (legacy CSV batch export)
+    data/drop/logs/gw-001_YYYYmmdd-HHMMSS-ffffff.log      (unstructured device log)
 
 Each run generates one file of each type with plausible contents:
   * CSV - 20 rows of sensor readings (deliberately legacy batch format)
   * LOG - mixed INFO/WARN/ERROR lines, unstructured text
 
 Usage:
-    python generators/file_factory.py              # one drop of each type
-    python generators/file_factory.py --loop 30    # drop every 30 seconds
+    python generators/file_factory.py                         # drop every 30 seconds
+    python generators/file_factory.py --count 1               # one drop of each type
+    python generators/file_factory.py --count 5 --interval 10 # five drops, 10s apart
 """
 
 import argparse
@@ -56,7 +57,7 @@ DROP_ROOT = resolve_drop_root()
 
 
 def stamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
 
 
 def make_csv(path: str | Path, device_id: str) -> str:
@@ -111,19 +112,27 @@ def drop_all() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Drop test files for GetFile")
-    parser.add_argument("--loop", type=int, default=0,
-                        help="drop every N seconds (0 = once)")
+    parser.add_argument("--count", type=int, default=0,
+                        help="number of file drops (0 = run forever)")
+    parser.add_argument("--interval", "--loop", dest="interval", type=float,
+                        default=30,
+                        help="seconds between drops (default: 30; --loop is an alias)")
     args = parser.parse_args()
 
-    if args.loop <= 0:
-        drop_all()
-        return
+    if args.count < 0:
+        parser.error("--count must be zero or greater")
+    if args.interval <= 0:
+        parser.error("--interval must be greater than zero")
+
+    dropped = 0
     try:
-        while True:
+        while args.count == 0 or dropped < args.count:
             drop_all()
-            time.sleep(args.loop)
+            dropped += 1
+            if args.count == 0 or dropped < args.count:
+                time.sleep(args.interval)
     except KeyboardInterrupt:
-        print("[file_factory] stopped")
+        print(f"[file_factory] stopped after {dropped} drops")
 
 
 if __name__ == "__main__":

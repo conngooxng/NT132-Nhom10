@@ -14,13 +14,17 @@ This uploader POSTs:
 Equivalent curl one-liners are in README section 5.
 
 Usage:
-    python generators/http_uploader.py
+    python generators/http_uploader.py                          # upload every 1.5s
+    python generators/http_uploader.py --count 1                # one upload batch
+    python generators/http_uploader.py --count 5 --interval 10  # five batches, 10s apart
 """
 
+import argparse
 import json
 import os
 import random
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -36,22 +40,45 @@ def post(path: str, body: bytes, content_type: str) -> None:
               f"({len(body)} bytes)")
 
 
-def main() -> None:
-    try:
-        # 1. JSON device status payload
-        status = {
-            "device_id": "gw-001",
-            "status": "ok",
-            "queued_batches": 3,
-            "checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        }
-        post(NIFI_LISTENHTTP,
-             json.dumps(status).encode(),
-             "application/json")
+def upload_batch() -> None:
+    # 1. JSON device status payload
+    status = {
+        "device_id": "gw-001",
+        "status": "ok",
+        "queued_batches": 3,
+        "checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    post(NIFI_LISTENHTTP,
+         json.dumps(status).encode(),
+         "application/json")
 
-        # 2. arbitrary binary blob (in production this could be a firmware image)
-        blob = bytes(random.randrange(256) for _ in range(2048))
-        post(NIFI_LISTENHTTP, blob, "application/octet-stream")
+    # 2. arbitrary binary blob (in production this could be a firmware image)
+    blob = bytes(random.randrange(256) for _ in range(2048))
+    post(NIFI_LISTENHTTP, blob, "application/octet-stream")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Upload sample payloads to NiFi")
+    parser.add_argument("--count", type=int, default=0,
+                        help="number of upload batches (0 = run forever)")
+    parser.add_argument("--interval", type=float, default=1.5,
+                        help="seconds between upload batches (default: 1.5)")
+    args = parser.parse_args()
+
+    if args.count < 0:
+        parser.error("--count must be zero or greater")
+    if args.interval <= 0:
+        parser.error("--interval must be greater than zero")
+
+    uploaded = 0
+    try:
+        while args.count == 0 or uploaded < args.count:
+            upload_batch()
+            uploaded += 1
+            if args.count == 0 or uploaded < args.count:
+                time.sleep(args.interval)
+    except KeyboardInterrupt:
+        print(f"[http_uploader] stopped after {uploaded} batches")
     except (urllib.error.URLError, OSError) as exc:
         print(
             f"[http_uploader] unable to reach NiFi at {NIFI_LISTENHTTP}: {exc}\n"
@@ -59,6 +86,8 @@ def main() -> None:
             file=sys.stderr,
         )
         raise SystemExit(1) from exc
+    else:
+        print(f"[http_uploader] finished after {uploaded} batches")
 
 
 if __name__ == "__main__":
